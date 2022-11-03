@@ -1,0 +1,407 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <pthread.h>
+
+// where we define all the variables here
+#define EXIT 0
+#define INVALID -1
+#define MEMORY 1
+#define FILES 2
+#define THREAD 3
+#define FIRST 0
+#define BEST 1
+#define WORST 2
+#define NEXT 3
+
+//declating the functions for the prototypes here
+int displayMenu();
+
+void clearScreen();
+void memoryManagement();
+
+void displayProcess(int allocation[], int processes, int processSize[]);
+void worstFit(int blockSize[], int blocks, int processSize[], int processes);
+void firstFit(int blockSize[], int blocks, int processSize[], int processes);
+void nextFit(int blockSize[], int blocks, int processSize[], int processes);
+void bestFit(int blockSize[], int blocks, int processSize[], int processes);
+void printAttributes(char name[], struct stat statBuff);
+void fileAttributes();
+void multiThreads();
+void* threadFunction(void* vargp);
+
+int main()
+{
+int choice = INVALID;
+while(choice!=0)
+{
+choice = displayMenu();
+if(choice==1)
+{
+memoryManagement();
+}
+else if(choice==2)
+{
+fileAttributes();
+}
+else if(choice==3)
+{
+multiThreads();
+}
+else
+  exit(0);
+}
+  return 0;
+}
+int displayMenu()
+{
+  //creating the choices pertaining to the functions for maintaining the memory.
+int choice = -1;
+while(choice==-1)
+{
+printf("\n********** Operating System Management Menu **********\n\n");
+printf("Select the OS program to run, enter the number of your selection.\n");
+printf("1. Memory Management\n");
+printf("2. File Management\n");
+printf("3. Multithreading\n");
+printf("0. Exit\n");
+  
+scanf("%d", &choice);
+if(choice<0 || choice>3)
+  
+{
+printf("Error! Reference source not found. ");
+clearScreen();
+choice=-1;
+}
+  
+else
+return choice;
+}
+}
+void clearScreen()
+{
+printf("Press enter.\n");
+char extra;
+char clr;
+scanf("%c", &extra);
+scanf("%c", &clr);
+//system("cls");
+system("clear");
+}
+void memoryManagement()
+{
+clearScreen();
+for(int i=0; i<4; i++) {
+  
+int proSize[] = {55, 40, 20, 25, 30};
+int blockSize[] = {50, 20, 30, 45, 60};
+
+  
+  // creating the process and the block to equal 5.
+int processes = 5;
+int blocks = 5;
+
+  //block sizing and the function process for first,best,worst and next.
+if(i==FIRST)
+{
+printf("\n\t******** First Fit ********\n\n");
+firstFit(blockSize, blocks, proSize, processes);
+}
+  
+else if(i==BEST)
+{
+printf("\n\t******** Best Fit ********\n\n");
+bestFit(blockSize, blocks, proSize, processes);
+}
+  
+else if(i==WORST)
+{
+printf("\n\t******** Worst Fit ********\n\n");
+worstFit(blockSize, blocks, proSize, processes);
+}
+  
+else if(i==NEXT)
+{
+printf("\n\t******** Next Fit ********\n\n");
+nextFit(blockSize, blocks, proSize, processes);
+}
+}
+}
+
+void nextFit(int blockSize[], int blocks, int proSize[], int processes)
+{
+  
+int allocation[processes];
+  
+int id = 0;
+  
+  // use sizeof to get the allocation correctly in place.
+memset(allocation, INVALID, sizeof(allocation));
+  
+for(int i=0; i<processes; i++) {
+while(id<blocks) {
+if(blockSize[id]>=proSize[i]) {
+  
+allocation[i]=id;  
+blockSize[id] = blockSize[id]-proSize[i]; 
+break;
+  
+}
+id = (id+1) % blocks;
+}
+}
+displayProcess(allocation, processes, proSize);
+}
+
+//allocate blocksizing
+void firstFit(int blockSize[], int blocks, int proSize[], int processes) {
+  
+int allocation[processes];
+memset(allocation, INVALID, sizeof(allocation));
+  
+for(int i=0; i<processes; i++) {
+for(int j=0; j<blocks; j++) {
+  
+if(blockSize[j]>=proSize[i]) {
+  
+allocation[i]=j;
+blockSize[j]=blockSize[j]-proSize[i];
+break;
+  
+}
+}
+}
+displayProcess(allocation, processes, proSize);
+}
+
+
+void bestFit(int blockSize[], int blocks, int proSize[], int processes)
+{
+  
+int allocation[processes];
+memset(allocation, INVALID, sizeof(allocation));
+  
+for(int i=0; i<processes; i++) {
+  
+int bestIdx = INVALID;
+  
+for(int j=0; j<blocks; j++) {
+if(blockSize[j]>=proSize[i]) {
+if(bestIdx == INVALID)
+bestIdx = j;
+  
+//make sure idx is greater than j  
+else if(blockSize[bestIdx] > blockSize[j])
+bestIdx = j;
+}
+}
+  
+if(bestIdx != INVALID) {
+allocation[i]=bestIdx;
+blockSize[bestIdx]=blockSize[bestIdx]-proSize[i];
+}
+}
+displayProcess(allocation, processes, proSize);
+}
+
+void worstFit(int blockSize[], int blocks, int proSize[], int processes) {
+  
+int allocation[processes];
+memset(allocation, INVALID, sizeof(allocation));
+for(int i=0; i<processes; i++)
+  
+{
+int wstIdx = INVALID;
+for(int j=0; j<blocks; j++)
+  
+{
+if(blockSize[j]>=proSize[i])
+  
+{
+if(wstIdx == INVALID)
+wstIdx = j;
+else if(blockSize[wstIdx]<blockSize[j])
+wstIdx = j;
+}
+  
+}
+if(wstIdx != INVALID)
+  
+{
+allocation[i]=wstIdx;
+blockSize[wstIdx] = blockSize[wstIdx] - proSize[i];
+}
+  
+}
+displayProcess(allocation, processes, proSize);
+}
+
+void displayProcess(int allocation[], int processes, int proSize[])
+{
+printf("Process No.\tProcess Size\tBlock no.\n");
+  
+for (int i=0; i<processes; i++) {
+printf("%d\t\t\t", i+1);
+printf("%d\t\t\t\t", proSize[i]);
+  
+if(allocation[i]==INVALID)
+printf("Not Allocated\n");
+  
+else
+printf("%d\n", (allocation[i]+1));
+}
+}
+
+//fileAttribute for opening directory
+void fileAttributes()
+{
+struct stat statBuff;
+int err;
+struct dirent *de;
+DIR *dr = opendir(".");
+  
+if(dr == NULL)
+printf("Could not open current directory");
+while((de = readdir(dr)) != NULL) {
+  
+err = stat(de->d_name, &statBuff);
+if(err == INVALID)
+  
+{
+  
+printf("\nError in stat\n");
+printf("Press \'Enter\' to continue...\n");
+getchar();
+  
+}
+  
+  //name
+printAttributes(de->d_name, statBuff);
+}
+}
+
+//got to give time here and the different attributes stated here.
+void printAttributes(char name[], struct stat statBuff)
+
+{
+  
+time_t t;
+char timeStr[100];
+  
+printf("------------------- File = %s -------------------\n", name);
+printf("Device id = %lu\n", statBuff.st_dev);
+printf("File serial number = %lu\n", statBuff.st_ino);
+printf("File user id = %d\n", statBuff.st_uid);
+printf("File group id = %d\n", statBuff.st_gid);
+printf("Owner permissions: ");
+  
+if(statBuff.st_mode & S_IRUSR)
+printf("read ");
+  
+if(statBuff.st_mode & S_IWUSR)
+printf("write ");
+  
+if(statBuff.st_mode & S_IXUSR)
+printf("execute");
+  
+printf("\n");
+printf("Group permissions: ");
+  
+if(statBuff.st_mode & S_IRGRP)
+printf("read ");
+  
+if(statBuff.st_mode & S_IWGRP)
+printf("write ");
+  
+if(statBuff.st_mode & S_IXGRP)
+printf("execute");
+  
+printf("\n");
+printf("Others permissions: ");
+  
+if(statBuff.st_mode & S_IROTH)
+printf("read ");
+  
+if(statBuff.st_mode & S_IWOTH)
+printf("write ");
+  
+if(statBuff.st_mode & S_IXOTH)
+printf("execute");
+printf("\n");
+
+  //goes into time for it being created and the time it was modified at
+for(int i=0; i<3; i++)
+{
+if(i==0)
+{
+struct tm *timeTM;
+t = statBuff.st_ctime;
+timeTM = localtime(&t);
+printf("Date created = %s", asctime(timeTM));
+}
+  
+else if(i==1)
+{
+struct tm *timeTM;
+t = statBuff.st_mtime;
+timeTM = localtime(&t);
+printf("Date modified = %s", asctime(timeTM));
+}
+  
+else
+{
+struct tm *timeTM;
+t = statBuff.st_atime;
+timeTM = localtime(&t);
+printf("Time file was last accessed = %s", asctime(timeTM));
+}
+}
+printf("File size = %ld bytes\n", statBuff.st_size);
+}
+
+//MultiThread Posted here
+void multiThreads()
+{
+  const int SIZE = 5;
+  int i;
+  int err;
+  pthread_t tid[SIZE];
+  for(i=0; i<SIZE; i++)
+  {
+    err = pthread_create((tid+i), NULL, &threadFunction, (void *)(tid+i));
+    if(err != 0)
+      printf("\nThread can't be created: [%s]\nPress \'Enter\' to continue...", strerror(err));
+  }
+  
+  for(i=0; i<SIZE; i++)
+  {
+    pthread_join(tid[i], NULL);
+  }
+}
+
+//function posted here
+void* threadFunction(void* vargp)
+{
+  const int LOOP = 5;
+  int i;
+  int *id;
+  id = (int *)vargp;
+
+    printf("\n------------------------\n");
+    printf("\n Thread ID %d has started!\n", *id);
+    printf("\n------------------------\n");
+    for(i=0; i<LOOP; i++)
+    {
+      printf("\nThread ID %d is printing iteration %d", *id, i);
+    }
+    printf("\n\n------------------------");
+    printf("\n Thread ID %d has finished!\n", *id);
+    printf("------------------------\n");
+
+  return NULL;
+}
